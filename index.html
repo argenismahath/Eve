@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html class="w-100 h-100">
+
+<head>
+    <title>Sheets API Quickstart</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="w-100 h-100">
+    <div class="container w-100 h-100">
+
+        <p>Sheets API Quickstart</p>
+        <div id="show-corp-info" class="container hiden">
+            <div class="mt-4">
+                <h3>Stored Data</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <!-- <th>Ceo ID</th> -->
+                            <th>Co-CEO</th>
+                            <th>Corporation Name</th>
+                            <th>Systems</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data_table_body"></tbody>
+                </table>
+            </div>
+
+            <button id="add-New-corp-botton" class="btn btn-primary mt-5">añadir nueva corp</button>
+        </div>
+
+        <br class="mb-5">
+        <div id="add-new-corp" class="container hiden">
+
+
+            <form id="data_form">
+                <div class="form-group">
+                    <label for="corpceo">Corp CEO Name:</label>
+                    <input type="text" class="form-control" id="corpceo" placeholder="Corp CEO Name" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="ceoId">Ceo ID:</label>
+                    <input type="text" class="form-control" id="ceoId" placeholder="Ceo ID" name="ceoId">
+                </div>
+                <div class="form-group">
+                    <label for="coCeo">Co-CEO:</label>
+                    <input type="text" class="form-control" id="coCeo" placeholder="Name or ID of Co-CEO" name="coCeo">
+                </div>
+                <div class="form-group">
+                    <label for="corpName">Corporation Name:</label>
+                    <input type="text" class="form-control" id="corpName" placeholder="Corporation Name"
+                        name="corpName">
+                </div>
+                <div class="form-group">
+                    <label for="system">Systems:</label>
+                    <input type="text" class="form-control" id="system" placeholder="Systems of the Corporation"
+                        name="system">
+                </div>
+                <div id="form-buttom">
+
+                    <button id="show-data" class="btn btn-info mt-5">ver registros</button>
+                    <button type="button" class="btn btn-primary mt-5" onclick="addNewElement()">Añadir nueva
+                        corp</button>
+                </div>
+            </form>
+            <div id="charging" class="hiden">
+
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+
+        </div>
+        <br>
+        <!--Add buttons to initiate auth sequence and sign out-->
+        <div class="position-absolute w-100" id="buttons">
+
+            <button id="authorize_button" class="btn btn-success mt5" onclick="handleAuthClick()">Authorize</button>
+            <br>
+            <button id="signout_button" class="btn btn-danger mt5" onclick="handleSignoutClick()">Sign Out</button>
+        </div>
+
+        <pre id="content" style="white-space: pre-wrap;" class="hiden"></pre>
+
+    </div>
+    <script type="text/javascript">
+        /* exported gapiLoaded */
+        /* exported gisLoaded */
+        /* exported handleAuthClick */
+        /* exported handleSignoutClick */
+
+        // TODO(developer): Set to client ID and API key from the Developer Console
+        const CLIENT_ID = '225198933559-4tpm7iveud9fhcrouae75t3kuncik6u7.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyD0F_FZs8a36LkhL9kS2UAQ0V99x0qzpQo';
+
+        // Discovery doc URL for APIs used by the quickstart
+        const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+
+        // Authorization scopes required by the API; multiple scopes can be
+        // included, separated by spaces.
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+        let lastId;
+
+        document.getElementById('authorize_button').style.visibility = 'hidden';
+        document.getElementById('signout_button').style.visibility = 'hidden';
+        const formTable = document.getElementById('show-corp-info');
+        const formAdd = document.getElementById('add-new-corp');
+
+        const spiner = document.getElementById('charging');
+
+
+        /**
+         * Callback after api.js is loaded.
+         */
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        /**
+         * Callback after the API client is loaded. Loads the
+         * discovery doc to initialize the API.
+         */
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+            handleAuthClick(); // Llama a la función después de que se inicialice el cliente de API
+        }
+
+        /**
+         * Callback after Google Identity Services are loaded.
+         */
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: "225198933559-4tpm7iveud9fhcrouae75t3kuncik6u7.apps.googleusercontent.com",
+                scope: SCOPES,
+                callback: '', // defined later
+            });
+            gisInited = true;
+            maybeEnableButtons();
+            handleAuthClick(); // Llama a la función después de que se carguen los servicios de identidad de Google
+        }
+
+        /**
+         * Enables user interaction after all libraries are loaded.
+         */
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                document.getElementById('authorize_button').style.visibility = 'visible';
+            }
+        }
+
+        /**
+         *  Sign in the user upon button click.
+         */
+        function openApp() {
+            document.getElementById('signout_button').style.visibility = 'visible';
+            // document.getElementById('data_form').style.display = 'block';
+            formTable.classList.toggle('hiden');
+
+            document.getElementById('authorize_button').innerText = 'Refresh';
+            listMajors();
+        }
+
+        function handleAuthClick() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                console.warn(await resp)
+                saveTokenToLocalStorage({ access_token: resp.access_token, expires_at: new Date().getTime() + (resp.expires_in * 1000) });
+                openApp()
+            };
+
+            const storedToken = getTokenFromLocalStorage();
+            console.log(isTokenValid(storedToken), 'sssss')
+            if (isTokenValid(storedToken)) {
+                // Si hay un token almacenado y es válido, usarlo directamente
+                gapi.client.setToken(storedToken);
+                // tokenClient.requestAccessToken({ prompt: '' }); // No mostrar diálogo de consentimiento
+                openApp()
+
+
+            } else {
+                // Si no hay un token almacenado o es inválido, solicitar uno nuevo
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            }
+        }
+
+        function saveTokenToLocalStorage(token) {
+            localStorage.setItem('google_access_token', JSON.stringify(token));
+        }
+        // Obtener el token desde el almacenamiento local
+        function getTokenFromLocalStorage() {
+            const tokenString = localStorage.getItem('google_access_token');
+            return JSON.parse(tokenString);
+        }
+
+        // Verificar si el token sigue siendo válido
+        function isTokenValid(token) {
+            if (!token || !token.access_token || !token.expires_at) {
+                return false;
+            }
+            const now = new Date().getTime();
+            return now < token.expires_at;
+        }
+
+        // Verificar si el token almacenado en el almacenamiento local es válido
+        function isStoredTokenValid() {
+            const storedToken = getTokenFromLocalStorage();
+            return isTokenValid(storedToken);
+        }
+        /**
+         *  Sign out the user upon button click.
+         */
+        function handleSignoutClick() {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+                document.getElementById('content').innerText = '';
+                document.getElementById('authorize_button').innerText = 'Authorize';
+                document.getElementById('signout_button').style.visibility = 'hidden';
+            }
+        }
+
+        /**
+         * Print the names and majors of students in a sample spreadsheet:
+         * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+         */
+        async function listMajors() {
+            let response;
+            try {
+                // Fetch first 10 files
+                response = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: '1DNbjuuy8vfS4vafrO_XiC1VM6ALGmYJFNIuUyV71rII',
+                    range: 'information!A3:F',
+                });
+            } catch (err) {
+                document.getElementById('content').innerText = err.message;
+                return;
+            }
+
+            const range = response.result;
+            if (!range || !range.values || range.values.length == 0) {
+                document.getElementById('content').innerText = 'No values found.';
+                return;
+            }
+
+            // Initialize an array to store objects
+            const data = [];
+            lastId = range.values[range.values.length - 1][0];
+            // Convert values to objects
+            range.values.forEach(row => {
+                const rowData = {
+                    name: row[1],
+                    ceoId: row[2],
+                    coCeo: row[3],
+                    corpName: row[4],
+                    system: row[5],
+                    corpId: row[0]
+                };
+                data.push(rowData);
+            });
+
+            // Log the array of objects
+            console.log(data);
+
+            // Optionally, you can display this data in the table
+            updateTable(data);
+        }
+
+        async function addNewElement() {
+            spiner.classList.toggle('hiden')
+            const newCorp = {
+                corpCeo: document.getElementById('corpceo').value,
+                ceoId: document.getElementById('ceoId').value,
+                coCeo: document.getElementById('coCeo').value,
+                corpName: document.getElementById('corpName').value,
+                system: document.getElementById('system').value,
+            }
+
+
+            let response;
+            try {
+                response = await gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: '1DNbjuuy8vfS4vafrO_XiC1VM6ALGmYJFNIuUyV71rII',
+                    range: 'information!A:F', // Range where you want to append data
+                    valueInputOption: 'USER_ENTERED', // Determines how input data should be interpreted.
+                    resource: {
+                        values: [
+                            [parseInt(lastId) + 1, newCorp.corpCeo, newCorp.ceoId, newCorp.coCeo, newCorp.corpName, newCorp.system], // New row of data to be added
+                        ],
+                    },
+                });
+                console.log(await response)
+
+                if (await response.status == 200) {
+                    document.getElementById('corpceo').value = '';
+                    document.getElementById('ceoId').value = '';
+                    document.getElementById('coCeo').value = '';
+                    document.getElementById('corpName').value = '';
+                    document.getElementById('system').value = '';
+                    console.log('fue enviado')
+                    listMajors()
+                    spiner.classList.toggle('hiden')
+
+                } else {
+                    spiner.classList.toggle('hiden')
+
+                }
+            } catch (err) {
+                document.getElementById('content').innerText = err.message;
+                return;
+            }
+            console.log(response);
+            document.getElementById('content').innerText = 'New element added successfully.';
+        }
+
+        function updateTable(data) {
+            const tableBody = document.getElementById('data_table_body');
+            tableBody.innerHTML = '';
+
+            // Populate table with data
+            // <td>${item.ceoId}</td>
+            data.forEach(item => {
+                const row = `
+                    <tr>
+                    <td>${item.name}</td>
+                    <td>${item.coCeo}</td>
+                    <td>${item.corpName}</td>
+                    <td>${item.system}</td>
+                    <td>
+                        <button>
+                            <a href="/planetarys/planetary.html?id=${item.corpId}">
+                                planetarios
+                            </a>
+                        </button>
+                    </td>
+                    </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Aquí puedes llamar a tu función después de que se carga el DOM
+            gapiLoaded()
+        });
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+<script src="script.js"></script>
+
+
+</html>

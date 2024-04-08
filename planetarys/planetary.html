@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <title>planetary</title>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</head>
+
+<body>
+    <div class="position-absolute w-100" id="buttons">
+        <button id="authorize_button" class="btn btn-success mt5" onclick="handleAuthClick()">Cargar datos</button>
+        <button><a href="/index.html">Home</a></button>
+        <button id="signout_button" class="btn btn-danger hiden mt5" onclick="handleSignoutClick()">Sign Out</button>
+    </div>
+    <div class="container w-100 h-100">
+
+        <!-- <p>Sheets API Quickstart</p> -->
+        <div id="show-corp-pl" class="container ">
+            <div class="mt-4">
+                <h3 id="corp-name"></h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <!-- <th>Ceo ID</th> -->
+                            <th>PL en ISk recibido</th>
+                            <th>PL en ISK dar</th>
+                            <th>Fecha de entrega</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data_table_body"></tbody>
+                </table>
+            </div>
+
+            <button id="add-New-pl-botton" class="btn btn-primary mt-5">añadir nuevo</button>
+        </div>
+
+        <div id="add-new-planetary" class="container hiden mt-4">
+
+
+            <form id="data_form">
+                <input type="number" name="corpId" hidden id="corpId">
+                <div class="form-group">
+                    <label for="corpceo">Fecha de recibido</label>
+                    <input type="date" class="form-control" id="fecha" placeholder="fecha de recibido" name="fecha">
+                </div>
+                <div class="form-group">
+                    <label for="Plreci">Pl valor recibido</label>
+                    <input type="number" class="form-control" id="Plreci" placeholder="valor de pl recibido" name="Plreci">
+                </div>
+                
+                <div id="form-buttom">
+
+                    <button id="show-data" class="btn btn-info mt-5">ver registros</button>
+                    <button type="button" class="btn btn-primary mt-5" onclick="addNewElement()">Añadir</button>
+                </div>
+            </form>
+            <div id="charging" class="hiden">
+
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+
+        </div>
+        <br>
+    </div>
+    <pre id="content" style="white-space: pre-wrap;" class="hiden"></pre>
+
+    <script  src="script.js"></script>
+   
+
+</body>
+
+</html>
